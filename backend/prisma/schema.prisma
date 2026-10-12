@@ -1,0 +1,56 @@
+// passwordHash guarda somente o hash Argon2id da senha, nunca o texto original.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Ciclo simples de uma solicitação.
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@map("request_status")
+}
+
+// Urgência da solicitação. O padrão no banco é MEDIUM.
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@map("request_priority")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  requests     Request[]
+
+  @@map("users")
+}
+
+model Request {
+  id          String          @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  status      RequestStatus   @default(OPEN)
+  priority    RequestPriority @default(MEDIUM)
+  userId      String          @map("user_id") @db.Uuid
+  user        User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("requests")
+}
